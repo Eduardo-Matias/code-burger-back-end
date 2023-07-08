@@ -1,5 +1,8 @@
 import * as Yup from 'yup'
+import jwt from 'jsonwebtoken'
 import User from '../models/User'
+import bcrypt from 'bcrypt'
+import authConfig from '../../config/auth'
 
 class SessionController {
   async store (request, response) {
@@ -22,7 +25,22 @@ class SessionController {
       return response.status(400).json({ error: 'Make sure your email and password are correct.' })
     }
 
-    return response.json(user)
+    const checkPassword = (password) => {
+      return bcrypt.compare(password, user.password_hash)
+    }
+
+    if (!(await checkPassword(password))) {
+      return response.status(401).json({ error: 'Make sure your email and password are correct.' })
+    }
+    return response.json({ 
+      id: user.id, 
+      email, 
+      name: user.name, 
+      admin: user.admin, 
+      token: jwt.sign({id: user.id, name: user.name}, authConfig.secret, {
+        expiresIn: authConfig.expiresIn
+      }) 
+    })
   }
 }
 
